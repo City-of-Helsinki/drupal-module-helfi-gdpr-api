@@ -397,12 +397,12 @@ class HelfiGdprApiController extends ControllerBase {
     // If we have user, then add user data.
     if ($user) {
       $data[0] = [
-        'key' => 'GRANT_APPLICATIONS_USER',
+        'key' => $this->audienceConfig['user_key'],
         'label' => [
-          'en' => 'Grant applications user',
-          'fi' => $this->t('Grant applications user', [], ['langcode' => 'fi'])
+          'en' => $this->audienceConfig['user_label_en'],
+          'fi' => $this->t($this->audienceConfig['user_label_en'], [], ['langcode' => 'fi'])
             ->render(),
-          'sv' => $this->t('Grant applications user', [], ['langcode' => 'sv'])
+          'sv' => $this->t($this->audienceConfig['user_label_en'], [], ['langcode' => 'sv'])
             ->render(),
         ],
         'children' => [
@@ -471,12 +471,12 @@ class HelfiGdprApiController extends ControllerBase {
     if ($gdprData) {
 
       $data[1] = [
-        'key' => 'GRANT_APPLICATIONS',
+        'key' => $this->audienceConfig['document_key'],
         'label' => [
-          'en' => 'Grant applications',
-          'fi' => $this->t('Grant applications', [], ['langcode' => 'fi'])
+          'en' => $this->audienceConfig['document_label_en'],
+          'fi' => $this->t($this->audienceConfig['document_label_en'], [], ['langcode' => 'fi'])
             ->render(),
-          'sv' => $this->t('Grant applications', [], ['langcode' => 'sv'])
+          'sv' => $this->t($this->audienceConfig['document_label_en'], [], ['langcode' => 'sv'])
             ->render(),
         ],
       ];
