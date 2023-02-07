@@ -1,0 +1,11 @@
+{
+  "name": "drupal/helfi_gdpr_api",
+  "type": "drupal-module",
+  "license": "GPL-2.0-or-later",
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "Drupal\\HelfiGdprApi\\": "src/"
+    }
+  }
+}
