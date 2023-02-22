@@ -164,7 +164,7 @@ class HelfiGdprApiController extends ControllerBase
             'audience_host' => getenv('GDPR_API_AUD_HOST'),
         ];
 
-        $this->setDebug(getenv('DEBUG') == 'true' || getenv('DEBUG') == true);
+        $this->setDebug(mb_strtolower(getenv('DEBUG')) === 'true' || getenv('DEBUG') === true);
         $this->parseJwt();
 
         $this->debug('Audience config: @config', ['@config' => Json::encode($this->audienceConfig)]);
@@ -227,16 +227,16 @@ class HelfiGdprApiController extends ControllerBase
             $deniedReason = $e->getMessage();
         }
 
-        if ($decoded == null) {
-            if ($deniedReason == null) {
-                return AccessResult::forbidden('JWT verification failed.');
-            } else {
+        if (!$decoded) {
+            if ($deniedReason) {
                 return AccessResult::forbidden($deniedReason);
+            } else {
+                return AccessResult::forbidden('JWT verification failed.');
             }
         }
 
         // If audience does not match, forbid access.
-        if ($decoded['aud'] != $this->audienceConfig["audience_host"] . '/' . $this->audienceConfig["service_name"]) {
+        if ($decoded['aud'] !== $this->audienceConfig["audience_host"] . '/' . $this->audienceConfig["service_name"]) {
             $this->debug(
                 'Access DENIED. Reason: @reason. JWT token: @token',
                 [
@@ -248,7 +248,7 @@ class HelfiGdprApiController extends ControllerBase
         }
 
         $hostkey = '';
-        if ($this->request->getCurrentRequest()->getMethod() == 'GET') {
+        if ($this->request->getCurrentRequest()->getMethod() === 'GET') {
             // Set hostname for get requests.
             if (isset($decoded[$this->audienceConfig["audience_host"]])) {
                 $hostkey = $this->audienceConfig["service_name"] . '.gdprquery';
@@ -265,7 +265,7 @@ class HelfiGdprApiController extends ControllerBase
                 return AccessResult::forbidden('Incorrect scope');
             }
         }
-        if ($this->request->getCurrentRequest()->getMethod() == 'DELETE') {
+        if ($this->request->getCurrentRequest()->getMethod() === 'DELETE') {
             // Same with delete requests, but key used is different.
             if (isset($decoded[$this->audienceConfig["audience_host"]])) {
                 $hostkey = $this->audienceConfig["service_name"] . '.gdprdelete';
@@ -281,7 +281,7 @@ class HelfiGdprApiController extends ControllerBase
             }
         }
 
-        if ($decoded[$this->audienceConfig["audience_host"]][0] == $hostkey) {
+        if ($decoded[$this->audienceConfig["audience_host"]][0] === $hostkey) {
             $this->debug(
                 'Local access GRANTED. Reason: @reason. JWT token: @token',
                 [
@@ -295,7 +295,7 @@ class HelfiGdprApiController extends ControllerBase
         }
 
         // We should never reach here, but just return forbidden access.
-        if ($deniedReason != null) {
+        if ($deniedReason) {
             return AccessResult::forbidden($deniedReason);
         } else {
             return AccessResult::forbidden('Generic token parse error');
@@ -481,7 +481,7 @@ class HelfiGdprApiController extends ControllerBase
 
         // Get data.
         $gdprData = $this->atvService->getGdprData($this->jwtData['sub'], $this->jwtToken);
-        if ($gdprData["total_deletable"] == 0 && $gdprData["total_undeletable"] == 0) {
+        if ($gdprData["total_deletable"] === 0 && $gdprData["total_undeletable"] === 0) {
             return [];
         }
 
