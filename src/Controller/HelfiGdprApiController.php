@@ -36,7 +36,6 @@ use Firebase\JWT\ExpiredException;
  */
 class HelfiGdprApiController extends ControllerBase
 {
-
     /**
      * Profiili data access.
      *
@@ -146,14 +145,13 @@ class HelfiGdprApiController extends ControllerBase
      *   Database.
      */
     public function __construct(
-        RequestStack             $request,
+        RequestStack $request,
         HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
-        AtvService               $atvService,
-        ClientInterface          $http_client,
-        CurrentLanguageContext   $currentLanguageContext,
-        Connection               $connection
-    )
-    {
+        AtvService $atvService,
+        ClientInterface $http_client,
+        CurrentLanguageContext $currentLanguageContext,
+        Connection $connection
+    ) {
         $this->request = $request;
         $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
         $this->atvService = $atvService;
@@ -166,7 +164,7 @@ class HelfiGdprApiController extends ControllerBase
             'audience_host' => getenv('GDPR_API_AUD_HOST'),
         ];
 
-        $this->setDebug(getenv('DEBUG') == 'true' || getenv('DEBUG') == TRUE);
+        $this->setDebug(getenv('DEBUG') == 'true' || getenv('DEBUG') == true);
         $this->parseJwt();
 
         $this->debug('Audience config: @config', ['@config' => Json::encode($this->audienceConfig)]);
@@ -193,8 +191,8 @@ class HelfiGdprApiController extends ControllerBase
     public function access($userId): AccessResultForbidden|AccessResultAllowed
     {
 
-        $deniedReason = NULL;
-        $decoded = NULL;
+        $deniedReason = null;
+        $decoded = null;
 
         try {
             $this->debug('GDPR Api access called. JWT token: @token', ['@token' => $this->jwtToken]);
@@ -229,8 +227,8 @@ class HelfiGdprApiController extends ControllerBase
             $deniedReason = $e->getMessage();
         }
 
-        if ($decoded == NULL) {
-            if ($deniedReason == NULL) {
+        if ($decoded == null) {
+            if ($deniedReason == null) {
                 return AccessResult::forbidden('JWT verification failed.');
             } else {
                 return AccessResult::forbidden($deniedReason);
@@ -243,14 +241,14 @@ class HelfiGdprApiController extends ControllerBase
                 'Access DENIED. Reason: @reason. JWT token: @token',
                 [
                     '@token' => $this->jwtToken,
-                    '@reason' => 'Audience mismatch',
-                ]);
+                    '@reason' => 'Audience mismatch'
+                ]
+            );
             return AccessResult::forbidden('Audience mismatch');
         }
 
         $hostkey = '';
         if ($this->request->getCurrentRequest()->getMethod() == 'GET') {
-
             // Set hostname for get requests.
             if (isset($decoded[$this->audienceConfig["audience_host"]])) {
                 $hostkey = $this->audienceConfig["service_name"] . '.gdprquery';
@@ -261,7 +259,8 @@ class HelfiGdprApiController extends ControllerBase
                         '@token' => $this->jwtToken,
                         '@config' => Json::encode($this->audienceConfig),
                         '@reason' => 'Incorrect scope',
-                    ]);
+                    ]
+                );
                 // If no host/scope setting in jwt data, forbid access.
                 return AccessResult::forbidden('Incorrect scope');
             }
@@ -276,7 +275,8 @@ class HelfiGdprApiController extends ControllerBase
                     [
                         '@token' => $this->jwtToken,
                         '@reason' => 'Incorrect scope',
-                    ]);
+                    ]
+                );
                 return AccessResult::forbidden('Incorrect scope');
             }
         }
@@ -287,14 +287,15 @@ class HelfiGdprApiController extends ControllerBase
                 [
                     '@token' => $this->jwtToken,
                     '@reason' => 'All match..',
-                ]);
+                ]
+            );
             return AccessResult::allowed();
         } else {
             $deniedReason = 'Scope mismatch';
         }
 
         // We should never reach here, but just return forbidden access.
-        if ($deniedReason != NULL) {
+        if ($deniedReason != null) {
             return AccessResult::forbidden($deniedReason);
         } else {
             return AccessResult::forbidden('Generic token parse error');
@@ -320,25 +321,24 @@ class HelfiGdprApiController extends ControllerBase
             $data = $this->getData();
             $statusCode = 200;
             if (empty($data)) {
-                $data = NULL;
+                $data = null;
                 $statusCode = 204;
             }
         } catch (AtvDocumentNotFoundException $e) {
-            $data = NULL;
+            $data = null;
             $statusCode = 204;
         } catch (AtvFailedToConnectException $e) {
-            $data = NULL;
+            $data = null;
             $statusCode = 500;
         } catch (TokenExpiredException $e) {
-            $data = NULL;
+            $data = null;
             $statusCode = 401;
         } catch (GuzzleException $e) {
-            $data = NULL;
+            $data = null;
             $statusCode = 500;
         }
 
         return new JsonResponse($data, $statusCode);
-
     }
 
     /**
@@ -356,7 +356,6 @@ class HelfiGdprApiController extends ControllerBase
 
             $this->atvService->deleteGdprData($this->jwtData['sub'], $this->jwtToken);
             $statusCode = 204;
-
         } catch (AtvDocumentNotFoundException $e) {
             $statusCode = 404;
         } catch (AtvFailedToConnectException $e) {
@@ -371,8 +370,7 @@ class HelfiGdprApiController extends ControllerBase
             $statusCode = 403;
         }
 
-        return new JsonResponse(NULL, $statusCode);
-
+        return new JsonResponse(null, $statusCode);
     }
 
     /**
@@ -386,7 +384,7 @@ class HelfiGdprApiController extends ControllerBase
         $authHeader = $currentRequest->headers->get('authorization');
 
         if (!$authHeader) {
-            throw new AccessDeniedHttpException('No authorization header', NULL, 403);
+            throw new AccessDeniedHttpException('No authorization header', null, 403);
         }
 
         $jwtToken = str_replace('Bearer ', '', $authHeader);
@@ -489,7 +487,6 @@ class HelfiGdprApiController extends ControllerBase
 
         // If we have data, then parse it.
         if ($gdprData) {
-
             $data[1] = [
                 'key' => $this->audienceConfig['document_key'],
                 'label' => [
@@ -602,7 +599,7 @@ class HelfiGdprApiController extends ControllerBase
      */
     public function getUser(): User|EntityBase|EntityInterface|null
     {
-        $query = $this->connection->select('users', 'u',);
+        $query = $this->connection->select('users', 'u');
         $query->join('authmap', 'am', 'am.uid = u.uid');
         $query
             ->fields('u', ['uid'])
@@ -627,5 +624,4 @@ class HelfiGdprApiController extends ControllerBase
             $this->getLogger('helf_gdpr_api')->debug($msg, $options);
         }
     }
-
 }
