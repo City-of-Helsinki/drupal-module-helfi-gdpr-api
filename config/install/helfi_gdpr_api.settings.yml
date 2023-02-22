@@ -1,7 +1,5 @@
 audience_config:
-  audience_host: 'https://api.hel.fi'
-  service_name: 'vaihdatämä'
-  user_key: 'vaihdatämä'
-  user_label_en: 'vaihdatämä'
-  document_key: 'vaihdatämä'
-  document_label_en: 'vaihdatämä'
+  user_key: 'changethis'
+  user_label_en: 'changethis'
+  document_key: 'changethis'
+  document_label_en: 'changethis'
