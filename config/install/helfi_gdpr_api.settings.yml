@@ -1,0 +1,5 @@
+audience_config:
+  user_key: 'changethis'
+  user_label_en: 'changethis'
+  document_key: 'changethis'
+  document_label_en: 'changethis'
