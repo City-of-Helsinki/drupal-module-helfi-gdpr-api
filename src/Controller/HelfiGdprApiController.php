@@ -318,7 +318,7 @@ class HelfiGdprApiController extends ControllerBase {
    *
    * @throws \Drupal\helfi_atv\AtvAuthFailedException
    */
-  public function get(string $userId) {
+  public function get(string $userId): JsonResponse {
 
     // Decode the json data.
     try {
@@ -333,17 +333,13 @@ class HelfiGdprApiController extends ControllerBase {
       $data = NULL;
       $statusCode = 204;
     }
-    catch (AtvFailedToConnectException $e) {
+    catch (AtvFailedToConnectException | GuzzleException $e) {
       $data = NULL;
       $statusCode = 500;
     }
     catch (TokenExpiredException $e) {
       $data = NULL;
       $statusCode = 401;
-    }
-    catch (GuzzleException $e) {
-      $data = NULL;
-      $statusCode = 500;
     }
 
     return new JsonResponse($data, $statusCode);
@@ -429,7 +425,7 @@ class HelfiGdprApiController extends ControllerBase {
     // If we have user, then add user data.
     if ($user) {
       $data[0] = [
-        'key' => 'GRANT_APPLICATIONS_USER',
+        'key' => strtoupper($this->audienceConfig['service_name']) . '_USER',
         'label' => [
           'en' => 'Grant applications user',
           'fi' => $this->t('Grant applications user', [], ['langcode' => 'fi'])
@@ -503,7 +499,7 @@ class HelfiGdprApiController extends ControllerBase {
     if ($gdprData) {
 
       $data[1] = [
-        'key' => 'GRANT_APPLICATIONS',
+        'key' => strtoupper($this->audienceConfig['service_name']),
         'label' => [
           'en' => 'Grant applications',
           'fi' => $this->t('Grant applications', [], ['langcode' => 'fi'])
@@ -609,7 +605,7 @@ class HelfiGdprApiController extends ControllerBase {
   /**
    * Get user from database.
    *
-   * @return \Drupal\Core\Entity\EntityBase|\Drupal\Core\Entity\EntityInterface|\Drupal\user\Entity\User|null
+   * @return \Drupal\Core\Entity\EntityBase|EntityInterface|User|null
    *   User or some other types.
    */
   public function getUser(): User|EntityBase|EntityInterface|null {
