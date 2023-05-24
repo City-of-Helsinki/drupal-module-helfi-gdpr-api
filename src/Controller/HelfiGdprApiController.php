@@ -355,8 +355,20 @@ class HelfiGdprApiController extends ControllerBase {
   public function delete($userId): JsonResponse {
 
     try {
-      $user = $this->getUser();
-      $user->delete();
+      // Try to load user via openid / tunnistamo id.
+      $authuid = $this->connection->select('authmap', 'am')
+        ->fields('am', ['uid'])
+        ->condition('authname', $userId)
+        ->condition('provider', 'openid_connect.tunnistamo')
+        ->range(0, 1)
+        ->execute()
+        ->fetchObject();
+
+      if ($authuid) {
+        // Try to load & delete user.
+        $user = User::load($authuid->uid);
+        $user?->delete();
+      }
 
       $this->atvService->deleteGdprData($this->jwtData['sub'], $this->jwtToken);
       $statusCode = 204;
