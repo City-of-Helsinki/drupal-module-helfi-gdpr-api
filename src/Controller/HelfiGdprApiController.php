@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\helfi_gdpr_api\Controller;
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityBase;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityBase;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Http\RequestStack;
 use Drupal\Core\Language\ContextProvider\CurrentLanguageContext;
@@ -22,14 +22,14 @@ use Drupal\helfi_atv\AtvService;
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use Drupal\user\Entity\User;
+use Firebase\JWT\BeforeValidException;
+use Firebase\JWT\ExpiredException;
+use Firebase\JWT\SignatureInvalidException;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Firebase\JWT\SignatureInvalidException;
-use Firebase\JWT\BeforeValidException;
-use Firebase\JWT\ExpiredException;
 
 /**
  * Returns responses for helfi_gdpr_api routes.
@@ -366,8 +366,10 @@ class HelfiGdprApiController extends ControllerBase {
 
       if ($authuid) {
         // Try to load & delete user.
+        // phpcs:disable
         $user = User::load($authuid->uid);
         $user?->delete();
+        // phpcs:enable
       }
 
       $this->atvService->deleteGdprData($this->jwtData['sub'], $this->jwtToken);
@@ -627,8 +629,9 @@ class HelfiGdprApiController extends ControllerBase {
       ->fields('u', ['uid'])
       ->condition('am.authname', $this->jwtData['sub']);
     $res = $query->execute()->fetchObject();
-
+    // phpcs:disable.
     $user = User::load($res->uid);
+    // phpcs:enable.
     return $user;
   }
 
