@@ -13,7 +13,6 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
-use Drupal\Core\Http\RequestStack;
 use Drupal\Core\Language\ContextProvider\CurrentLanguageContext;
 use Drupal\helfi_atv\AtvAuthFailedException;
 use Drupal\helfi_atv\AtvDocumentNotFoundException;
@@ -29,6 +28,7 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -46,7 +46,7 @@ class HelfiGdprApiController extends ControllerBase {
   /**
    * Request stack.
    *
-   * @var \Drupal\Core\Http\RequestStack
+   * @var \Symfony\Component\HttpFoundation\RequestStack
    */
   protected RequestStack $request;
 
@@ -129,7 +129,7 @@ class HelfiGdprApiController extends ControllerBase {
   /**
    * CompanyController constructor.
    *
-   * @param \Drupal\Core\Http\RequestStack $request
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request
    *   Request.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinki profile data access.
