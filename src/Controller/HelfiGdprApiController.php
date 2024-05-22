@@ -252,8 +252,22 @@ class HelfiGdprApiController extends ControllerBase {
       }
     }
 
+    $audience = $decoded['aud'];
+    $expectedAudience = $this->audienceConfig['service_name'];
+
+    if ($decoded['sub'] !== $userId) {
+      $this->debug(
+        'GDPR Api access failed: User ID mismatch - JWT value: @jwt Endpoint value: @endpoint',
+        [
+          '@jwt' => $decoded['sub'],
+          '@endpoint' => $userId
+        ]
+      );
+      return AccessResult::forbidden('User ID mismatch');
+    }
+
     // If audience does not match, forbid access.
-    if ($decoded['aud'] != $this->audienceConfig["audience_host"] . '/' . $this->audienceConfig["service_name"]) {
+    if ($audience != $expectedAudience) {
       $this->debug(
         'Access DENIED. Reason: @reason. JWT token: @token',
         [
@@ -265,40 +279,13 @@ class HelfiGdprApiController extends ControllerBase {
 
     $hostkey = '';
     if ($this->request->getCurrentRequest()->getMethod() == 'GET') {
-
-      // Set hostname for get requests.
-      if (isset($decoded[$this->audienceConfig["audience_host"]])) {
-        $hostkey = $this->audienceConfig["service_name"] . '.gdprquery';
-      }
-      else {
-        $this->debug(
-          'Local access DENIED. Reason: @reason. JWT token: @token',
-          [
-            '@token' => $this->jwtToken,
-            '@config' => Json::encode($this->audienceConfig),
-            '@reason' => 'Incorrect scope',
-          ]);
-        // If no host/scope setting in jwt data, forbid access.
-        return AccessResult::forbidden('Incorrect scope');
-      }
+      $hostkey = 'gdprquery';
     }
     if ($this->request->getCurrentRequest()->getMethod() == 'DELETE') {
-      // Same with delete requests, but key used is different.
-      if (isset($decoded[$this->audienceConfig["audience_host"]])) {
-        $hostkey = $this->audienceConfig["service_name"] . '.gdprdelete';
-      }
-      else {
-        $this->debug(
-          'Local access DENIED. Reason: @reason. JWT token: @token',
-          [
-            '@token' => $this->jwtToken,
-            '@reason' => 'Incorrect scope',
-          ]);
-        return AccessResult::forbidden('Incorrect scope');
-      }
+      $hostkey = 'gdprdelete';
     }
 
-    if ($decoded[$this->audienceConfig["audience_host"]][0] == $hostkey) {
+    if (in_array($hostkey, $decoded['authorization']['permissions'][0]['scopes'])) {
       $this->debug(
         'Local access GRANTED. Reason: @reason. JWT token: @token',
         [
