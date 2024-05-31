@@ -285,7 +285,7 @@ class HelfiGdprApiController extends ControllerBase {
       $hostkey = 'gdprdelete';
     }
 
-    if (in_array($hostkey, $decoded['authorization']['permissions'][0]['scopes'])) {
+    if (in_array($hostkey, $decoded['authorization']->permissions[0]->scopes)) {
       $this->debug(
         'Local access GRANTED. Reason: @reason. JWT token: @token',
         [
