@@ -204,9 +204,9 @@ class HelfiGdprApiController extends ControllerBase {
     $decoded = NULL;
 
     try {
-      $this->debug('GDPR Api access called. JWT token: @token', ['@token' => $this->jwtToken]);
+      $this->debug('GDPR Api access called. JWT token: @token', ['@token' => $this->jwtToken], TRUE);
       $decoded = $this->helsinkiProfiiliUserData->verifyJwtToken($this->jwtToken);
-      $this->debug('GDPR Api access called. JWT token contents: @token', ['@token' => Json::encode($decoded)]);
+      $this->debug('GDPR Api access called. JWT token contents: @token', ['@token' => Json::encode($decoded)], TRUE);
     }
     catch (\InvalidArgumentException $e) {
       $deniedReason = $e->getMessage();
@@ -260,8 +260,9 @@ class HelfiGdprApiController extends ControllerBase {
         'GDPR Api access failed: User ID mismatch - JWT value: @jwt Endpoint value: @endpoint',
         [
           '@jwt' => $decoded['sub'],
-          '@endpoint' => $userId
-        ]
+          '@endpoint' => $userId,
+        ],
+        TRUE
       );
       return AccessResult::forbidden('User ID mismatch');
     }
@@ -273,7 +274,9 @@ class HelfiGdprApiController extends ControllerBase {
         [
           '@token' => $this->jwtToken,
           '@reason' => 'Audience mismatch',
-        ]);
+        ],
+        TRUE
+      );
       return AccessResult::forbidden('Audience mismatch');
     }
 
@@ -291,7 +294,9 @@ class HelfiGdprApiController extends ControllerBase {
         [
           '@token' => $this->jwtToken,
           '@reason' => 'All match..',
-        ]);
+        ],
+        TRUE
+      );
       return AccessResult::allowed();
     }
     else {
@@ -639,9 +644,21 @@ class HelfiGdprApiController extends ControllerBase {
    *   Message.
    * @param array $options
    *   Options.
+   * @param bool $sensitive
+   *   Does the debug msg contain sensitive information?
+   *   These will be removed in production environments.
    */
-  private function debug(string $msg, array $options = []) {
-    if ($this->isDebug() && !$this->isProduction()) {
+  private function debug(string $msg, array $options = [], $sensitive = FALSE) {
+    if ($sensitive && $this->isProduction()) {
+      $sensitiveValues = ['@jwt', '@token'];
+      foreach ($sensitiveValues as $sensitiveValue) {
+        if (isset($options[$sensitiveValue])) {
+          $options[$sensitiveValue] = '<redacted>';
+        }
+      }
+    }
+
+    if ($this->isDebug()) {
       $this->getLogger('helf_gdpr_api')->debug($msg, $options);
     }
   }
@@ -650,7 +667,7 @@ class HelfiGdprApiController extends ControllerBase {
    * Check if current environment is production.
    *
    * @return bool
-   *  Returns true if the environment is production.
+   *   Returns true if the environment is production.
    */
   private function isProduction(): bool {
     $appEnv = getenv('APP_ENV');
