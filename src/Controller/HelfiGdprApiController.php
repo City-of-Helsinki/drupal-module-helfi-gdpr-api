@@ -204,9 +204,9 @@ class HelfiGdprApiController extends ControllerBase {
     $decoded = NULL;
 
     try {
-      $this->debug('GDPR Api access called. JWT token: @token', ['@token' => $this->jwtToken]);
+      $this->debug('GDPR Api access called. JWT token: @token', ['@token' => $this->jwtToken], TRUE);
       $decoded = $this->helsinkiProfiiliUserData->verifyJwtToken($this->jwtToken);
-      $this->debug('GDPR Api access called. JWT token contents: @token', ['@token' => Json::encode($decoded)]);
+      $this->debug('GDPR Api access called. JWT token contents: @token', ['@token' => Json::encode($decoded)], TRUE);
     }
     catch (\InvalidArgumentException $e) {
       $deniedReason = $e->getMessage();
@@ -252,59 +252,51 @@ class HelfiGdprApiController extends ControllerBase {
       }
     }
 
+    $audience = $decoded['aud'];
+    $expectedAudience = $this->audienceConfig['service_name'];
+
+    if ($decoded['sub'] !== $userId) {
+      $this->debug(
+        'GDPR Api access failed: User ID mismatch - JWT value: @jwt Endpoint value: @endpoint',
+        [
+          '@jwt' => $decoded['sub'],
+          '@endpoint' => $userId,
+        ],
+        TRUE
+      );
+      return AccessResult::forbidden('User ID mismatch');
+    }
+
     // If audience does not match, forbid access.
-    if ($decoded['aud'] != $this->audienceConfig["audience_host"] . '/' . $this->audienceConfig["service_name"]) {
+    if ($audience != $expectedAudience) {
       $this->debug(
         'Access DENIED. Reason: @reason. JWT token: @token',
         [
           '@token' => $this->jwtToken,
           '@reason' => 'Audience mismatch',
-        ]);
+        ],
+        TRUE
+      );
       return AccessResult::forbidden('Audience mismatch');
     }
 
     $hostkey = '';
     if ($this->request->getCurrentRequest()->getMethod() == 'GET') {
-
-      // Set hostname for get requests.
-      if (isset($decoded[$this->audienceConfig["audience_host"]])) {
-        $hostkey = $this->audienceConfig["service_name"] . '.gdprquery';
-      }
-      else {
-        $this->debug(
-          'Local access DENIED. Reason: @reason. JWT token: @token',
-          [
-            '@token' => $this->jwtToken,
-            '@config' => Json::encode($this->audienceConfig),
-            '@reason' => 'Incorrect scope',
-          ]);
-        // If no host/scope setting in jwt data, forbid access.
-        return AccessResult::forbidden('Incorrect scope');
-      }
+      $hostkey = 'gdprquery';
     }
     if ($this->request->getCurrentRequest()->getMethod() == 'DELETE') {
-      // Same with delete requests, but key used is different.
-      if (isset($decoded[$this->audienceConfig["audience_host"]])) {
-        $hostkey = $this->audienceConfig["service_name"] . '.gdprdelete';
-      }
-      else {
-        $this->debug(
-          'Local access DENIED. Reason: @reason. JWT token: @token',
-          [
-            '@token' => $this->jwtToken,
-            '@reason' => 'Incorrect scope',
-          ]);
-        return AccessResult::forbidden('Incorrect scope');
-      }
+      $hostkey = 'gdprdelete';
     }
 
-    if ($decoded[$this->audienceConfig["audience_host"]][0] == $hostkey) {
+    if (in_array($hostkey, $decoded['authorization']->permissions[0]->scopes)) {
       $this->debug(
         'Local access GRANTED. Reason: @reason. JWT token: @token',
         [
           '@token' => $this->jwtToken,
           '@reason' => 'All match..',
-        ]);
+        ],
+        TRUE
+      );
       return AccessResult::allowed();
     }
     else {
@@ -652,11 +644,34 @@ class HelfiGdprApiController extends ControllerBase {
    *   Message.
    * @param array $options
    *   Options.
+   * @param bool $sensitive
+   *   Does the debug msg contain sensitive information?
+   *   These will be removed in production environments.
    */
-  private function debug(string $msg, array $options = []) {
+  private function debug(string $msg, array $options = [], $sensitive = FALSE) {
+    if ($sensitive && $this->isProduction()) {
+      $sensitiveValues = ['@jwt', '@token'];
+      foreach ($sensitiveValues as $sensitiveValue) {
+        if (isset($options[$sensitiveValue])) {
+          $options[$sensitiveValue] = '<redacted>';
+        }
+      }
+    }
+
     if ($this->isDebug()) {
       $this->getLogger('helf_gdpr_api')->debug($msg, $options);
     }
+  }
+
+  /**
+   * Check if current environment is production.
+   *
+   * @return bool
+   *   Returns true if the environment is production.
+   */
+  private function isProduction(): bool {
+    $appEnv = getenv('APP_ENV');
+    return in_array($appEnv, ['production', 'PRODUCTION', 'prod', 'PROD']);
   }
 
 }
