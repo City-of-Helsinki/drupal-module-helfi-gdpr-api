@@ -641,9 +641,20 @@ class HelfiGdprApiController extends ControllerBase {
    *   Options.
    */
   private function debug(string $msg, array $options = []) {
-    if ($this->isDebug()) {
+    if ($this->isDebug() && !$this->isProduction()) {
       $this->getLogger('helf_gdpr_api')->debug($msg, $options);
     }
+  }
+
+  /**
+   * Check if current environment is production.
+   *
+   * @return bool
+   *  Returns true if the environment is production.
+   */
+  private function isProduction(): bool {
+    $appEnv = getenv('APP_ENV');
+    return in_array($appEnv, ['production', 'PRODUCTION', 'prod', 'PROD']);
   }
 
 }
