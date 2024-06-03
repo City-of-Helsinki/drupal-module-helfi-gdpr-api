@@ -373,6 +373,7 @@ class HelfiGdprApiController extends ControllerBase {
         // Try to load & delete user.
         $user = $this->userStorage->load($authuid->uid);
         $user?->delete();
+        // phpcs:enable
       }
 
       $this->atvService->deleteGdprData($this->jwtData['sub'], $this->jwtToken);
