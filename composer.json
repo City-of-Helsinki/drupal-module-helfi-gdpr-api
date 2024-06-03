@@ -1,16 +1,12 @@
 {
-    "name": "drupal/helfi_gdpr_api",
-    "type": "drupal-module",
-    "license": "GPL-2.0-or-later",
-    "minimum-stability": "dev",
-    "version": "0.9.5",
-    "autoload": {
-        "psr-4": {
-            "Drupal\\HelfiGdprApi\\": "src/"
-        }
-    },
-    "require": {
-        "drupal/helfi_helsinki_profiili": "*",
-        "drupal/helfi_tunnistamo": "^2.0"
+  "name": "drupal/helfi_gdpr_api",
+  "type": "drupal-module",
+  "license": "GPL-2.0-or-later",
+  "minimum-stability": "dev",
+  "version": "0.9.7",
+  "autoload": {
+    "psr-4": {
+      "Drupal\\HelfiGdprApi\\": "src/"
     }
+  }
 }

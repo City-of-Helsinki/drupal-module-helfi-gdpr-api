@@ -13,7 +13,6 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
-use Drupal\Core\Http\RequestStack;
 use Drupal\Core\Language\ContextProvider\CurrentLanguageContext;
 use Drupal\helfi_atv\AtvAuthFailedException;
 use Drupal\helfi_atv\AtvDocumentNotFoundException;
@@ -22,6 +21,7 @@ use Drupal\helfi_atv\AtvService;
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use Drupal\user\Entity\User;
+use Drupal\user\UserStorageInterface;
 use Firebase\JWT\BeforeValidException;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
@@ -29,6 +29,7 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -46,7 +47,7 @@ class HelfiGdprApiController extends ControllerBase {
   /**
    * Request stack.
    *
-   * @var \Drupal\Core\Http\RequestStack
+   * @var \Symfony\Component\HttpFoundation\RequestStack
    */
   protected RequestStack $request;
 
@@ -100,6 +101,13 @@ class HelfiGdprApiController extends ControllerBase {
   protected array $audienceConfig;
 
   /**
+   * Entitytype manager for users.
+   *
+   * @var \Drupal\user\UserStorageInterface
+   */
+  protected UserStorageInterface $userStorage;
+
+  /**
    * DEbug or not?
    *
    * @var bool
@@ -129,33 +137,37 @@ class HelfiGdprApiController extends ControllerBase {
   /**
    * CompanyController constructor.
    *
-   * @param \Drupal\Core\Http\RequestStack $request
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request
    *   Request.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinki profile data access.
    * @param \Drupal\helfi_atv\AtvService $atvService
    *   Atv access.
-   * @param \GuzzleHttp\ClientInterface $http_client
+   * @param \GuzzleHttp\ClientInterface $httpClient
    *   HTTP client.
    * @param \Drupal\Core\Language\ContextProvider\CurrentLanguageContext $currentLanguageContext
    *   Language.
    * @param \Drupal\Core\Database\Connection $connection
    *   Database.
+   * @param Drupal\user\UserStorageInterface $userStorage
+   *   User storage.
    */
   public function __construct(
     RequestStack $request,
     HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
     AtvService $atvService,
-    ClientInterface $http_client,
+    ClientInterface $httpClient,
     CurrentLanguageContext $currentLanguageContext,
-    Connection $connection
+    Connection $connection,
+    UserStorageInterface $userStorage
   ) {
     $this->request = $request;
     $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
     $this->atvService = $atvService;
-    $this->httpClient = $http_client;
+    $this->httpClient = $httpClient;
     $this->currentLanguageContext = $currentLanguageContext;
     $this->connection = $connection;
+    $this->userStorage = $userStorage;
 
     $this->audienceConfig = [
       'service_name' => getenv('GDPR_API_AUD_SERVICE'),
@@ -178,7 +190,8 @@ class HelfiGdprApiController extends ControllerBase {
       $container->get('helfi_atv.atv_service'),
       $container->get('http_client'),
       $container->get('language.current_language_context'),
-      $container->get('database')
+      $container->get('database'),
+      $container->get('entity_type.manager')->getStorage('user'),
     );
   }
 
@@ -366,8 +379,7 @@ class HelfiGdprApiController extends ControllerBase {
 
       if ($authuid) {
         // Try to load & delete user.
-        // phpcs:disable
-        $user = User::load($authuid->uid);
+        $user = $this->userStorage->load($authuid->uid);
         $user?->delete();
         // phpcs:enable
       }
@@ -629,9 +641,8 @@ class HelfiGdprApiController extends ControllerBase {
       ->fields('u', ['uid'])
       ->condition('am.authname', $this->jwtData['sub']);
     $res = $query->execute()->fetchObject();
-    // phpcs:disable.
-    $user = User::load($res->uid);
-    // phpcs:enable.
+
+    $user = $this->userStorage->load($res->uid);
     return $user;
   }
 
